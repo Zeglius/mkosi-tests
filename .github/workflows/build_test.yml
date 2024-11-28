@@ -6,6 +6,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        image:
+          - ghcr.io/ublue-os/bazzite
+          - ghcr.io/ublue-os/bluefin
+
     steps:
       - name: Setup BTRFS partition
         run: |
@@ -30,17 +36,15 @@ jobs:
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@v7
 
-      - run: |
-          DEBUG=1 just build ghcr.io/ublue-os/bazzite 10-example
+      - name: Build sysext for ${{ matrix.image }}
+        id: build
+        run: |
+          DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
+          mkosi build
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: 10-example_sysext.raw
-          path: mkosi.output/10-example_sysext.raw
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: 10-example_confext.raw
-          path: mkosi.output/10-example_confext.raw
+          name: ${{ matrix.image }}_${{ steps.build.outputs.format }}.raw
+          path: mkosi.output/*.raw
           retention-days: 1
