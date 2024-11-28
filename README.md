@@ -32,7 +32,8 @@ just setup
 
 IMAGE_REFERENCE="ghcr.io/ublue-os/bazzite"
 just prepare-overlay-tar "$IMAGE_REFERENCE"
-mkosi --dependency dx
+# The 'dx' can be repaced with any other image from 'mkosi.images/'
+mkosi build
 ```
 
 ### ... try an extension...
@@ -67,11 +68,16 @@ sudo systemctl restart systemd-confext
 
 ### ... add/remove packages
 
-See `mkosi.conf.d/10-example.conf`.
+See `mkosi.images/_dx_base/mkosi.conf`.
 
 ### ... add repos
 
-See `mkosi.conf.d/10-dx`.
+See `mkosi.sandbox/etc/yum.repos.d/`.
+
+### ... change the name of the extension
+
+You can either rename `mkosi.images/dx-sysext.conf` and `mkosi.images/dx-confext.conf`,
+or create a new subimage, see 'Building multiple images' at `mkosi documentation`.
 
 ## Resources
 
