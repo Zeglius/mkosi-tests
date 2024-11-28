@@ -41,7 +41,7 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          mkosi build
+          mkosi --force build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
