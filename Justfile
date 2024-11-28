@@ -7,8 +7,6 @@ export BASETREE := justfile_directory() + "/mkosi.basetree"
 default:
     just --list
 
-all: setup clean build
-
 setup:
     #!/usr/bin/bash
 
