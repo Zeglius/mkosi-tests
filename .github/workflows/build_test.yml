@@ -51,6 +51,8 @@ jobs:
       #     retention-days: 1
 
       - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -xe
           RELEASE_NAME=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}
