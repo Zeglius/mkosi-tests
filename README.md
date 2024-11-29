@@ -33,7 +33,7 @@ just setup
 IMAGE_REFERENCE="ghcr.io/ublue-os/bazzite"
 just prepare-overlay-tar "$IMAGE_REFERENCE"
 # The 'dx' can be repaced with any other image from 'mkosi.images/'
-mkosi build
+mkosi build --dependency dx
 ```
 
 ### ... try an extension...
