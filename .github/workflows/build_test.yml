@@ -13,6 +13,9 @@ jobs:
           - ghcr.io/ublue-os/bazzite
           - ghcr.io/ublue-os/bluefin
 
+    permissions:
+      contents: write
+
     steps:
       - name: Setup BTRFS partition
         run: |
