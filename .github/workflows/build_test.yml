@@ -46,20 +46,20 @@ jobs:
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
           mkosi --force build
 
-      # - name: Upload artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ matrix.image }}_${{ steps.build.outputs.format }}.raw
-      #     path: mkosi.output/*.raw
-      #     retention-days: 1
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.image }}-${{ github.run_number }}
+          path: mkosi.output/*.raw
+          retention-days: 1
 
-      - name: Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -xe
-          RELEASE_NAME=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}
-          RELEASE_TAG=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}-${{ github.run_number }}
-          gh release delete $RELEASE_TAG --yes || true
-          gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
-          gh release upload $RELEASE_TAG mkosi.output/*.raw
+      # - name: Release
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
+      #   run: |
+      #     set -xe
+      #     RELEASE_NAME=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}
+      #     RELEASE_TAG=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}-${{ github.run_number }}
+      #     gh release delete $RELEASE_TAG --yes || true
+      #     gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
+      #     gh release upload $RELEASE_TAG mkosi.output/*.raw
