@@ -44,7 +44,7 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          mkosi --force build
+          sudo mkosi --force build
 
       # FIXME: This doesnt work, figure out why.
       - name: Upload artifacts
