@@ -46,10 +46,11 @@ jobs:
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
           mkosi --force build
 
+      # FIXME: This doesnt work, figure out why.
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.image }}-${{ github.run_number }}
+          name: ${{ matrix.image }}-extensions
           path: mkosi.output/*.raw
           retention-days: 1
 
