@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+set -e ${DEBUG:+-x}
+
+MKOSI_CONFIG=${1:-$(</dev/stdin)}
+
+VERSION_ID=$(source mkosi.basetree/usr/lib/os-release && echo $VERSION_ID)
+
+output=$(jq -r ". | .Release = \"$VERSION_ID\"" <<<"$MKOSI_CONFIG")
+echo "$output"
