@@ -1,1 +1,7 @@
-0.1.0
+#!/usr/bin/bash
+# This script is used to generate the version string for the mkosi
+
+set -e ${DEBUG:+-x}
+
+OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release && echo $OSTREE_VERSION)
+echo $OSTREE_VERSION
