@@ -7,8 +7,6 @@ export BASETREE := justfile_directory() + "/mkosi.basetree"
 default:
     just --list
 
-all: setup clean build
-
 setup:
     #!/usr/bin/bash
 
@@ -38,22 +36,18 @@ clean:
         fi
     fi
 
-build $IMAGE_REF="ghcr.io/ublue-os/bazzite" $IMAGE_NAME="":
+build $IMAGE_REF:
     #!/usr/bin/bash
-    set ${DEBUG:+-x} -euo pipefail
-    [[ -z $IMAGE_NAME || -z $IMAGE_REF ]] && {
-      echo >&2 "IMAGE_REF and IMAGE_NAME must NOT be empty."
-      exit 1
-    }
-    just prepare-overlay-tar $IMAGE_REF >&2
-    for format in sysext confext; do
-      {
-      ${CI:+sudo} $(which mkosi) \
-        --profile $format \
-        --output ${IMAGE_NAME}_${format} $([[ -n $CI ]] && echo --debug)
-      } >&2
-      realpath ${IMAGE_NAME}_${format}.*
-    done
+    {
+        set ${DEBUG:+-x} -euo pipefail
+        [[ -z $IMAGE_REF ]] && {
+        echo >&2 "IMAGE_REF and IMAGE_NAME must NOT be empty."
+        exit 1
+        }
+        just prepare-overlay-tar $IMAGE_REF >&2
+            ${CI:+sudo} $(which mkosi) $([[ -n $CI ]] && echo --debug)
+    } >&2
+    realpath ${IMAGE_NAME}_${format}.* >&1
 
 prepare-overlay-tar $IMAGE_REF:
     #!/usr/bin/bash
@@ -69,11 +63,7 @@ prepare-overlay-tar $IMAGE_REF:
         fi
     }
 
-    if [[ -e "$BASETREE" ]]; then
-        echo >&2 "${BASETREE} already exists. Skipping..."
-        exit 0
-    fi
-
+    just clean >&2
     echo >&2 "Preparing '$(basename "$BASETREE")'..."
 
     container=$(podman create --entrypoint /usr/bin/true $IMAGE_REF)

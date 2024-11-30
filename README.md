@@ -31,8 +31,9 @@ Confext (the equivalent for `/etc`) is supported as well.
 just setup
 
 IMAGE_REFERENCE="ghcr.io/ublue-os/bazzite"
-EXTENSION_NAME="50-example"
-just build $IMAGE_REFERENCE $EXTENSION_NAME
+just prepare-overlay-tar "$IMAGE_REFERENCE"
+# The 'dx' can be repaced with any other image from 'mkosi.images/'
+mkosi build --dependency dx
 ```
 
 ### ... try an extension...
@@ -42,12 +43,12 @@ To test an extension temporary (will be deactivated at reboot):
 ```sh
 # If its a sysext
 sudo mkdir -p /run/extensions
-sudo ln -s $PWD/mkosi.output/50-example_sysext.raw /run/extensions
+sudo ln -s $PWD/mkosi.output/dx_41_0.1.0.sysext.raw /run/extensions/
 sudo systemctl restart systemd-sysext
 
 # Otherwise, if its a confext
 sudo mkdir -p /run/confexts
-sudo ln -s $PWD/mkosi.output/50-example_confext.raw /run/extensions
+sudo ln -s $PWD/mkosi.output/dx_41_0.1.0.confext.raw /run/extensions/
 sudo systemctl restart systemd-confext
 ```
 
@@ -56,22 +57,27 @@ If you want to enable it permanently:
 ```sh
 # If its a sysext
 sudo mkdir -p /var/lib/extensions
-sudo cp $PWD/mkosi.output/50-example_sysext.raw /var/lib/extensions/
+sudo cp $PWD/mkosi.output/dx_41_0.1.0.sysext.raw /var/lib/extensions/
 sudo systemctl restart systemd-sysext
 
 # Otherwise, if its a confext
 sudo mkdir -p /var/lib/confexts
-sudo cp $PWD/mkosi.output/50-example_confext.raw /var/lib/extensions/
+sudo cp $PWD/mkosi.output/dx_41_0.1.0.confext.raw /var/lib/extensions/
 sudo systemctl restart systemd-confext
 ```
 
 ### ... add/remove packages
 
-See `mkosi.conf.d/10-example.conf`.
+See `mkosi.images/_dx_base/mkosi.conf`.
 
 ### ... add repos
 
-See `mkosi.conf.d/10-dx`.
+See `mkosi.sandbox/etc/yum.repos.d/`.
+
+### ... change the name of the extension
+
+You can either rename `mkosi.images/dx-sysext.conf` and `mkosi.images/dx-confext.conf`,
+or create a new subimage, see 'Building multiple images' at `mkosi documentation`.
 
 ## Resources
 
