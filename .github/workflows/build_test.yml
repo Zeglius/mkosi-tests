@@ -46,22 +46,17 @@ jobs:
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
           sudo mkosi --force build
 
-      # FIXME: This doesnt work, figure out why.
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.image }}-extensions
-          path: |
-            mkosi.output/*.raw
-          retention-days: 1
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -xe
 
-      # - name: Release
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #   run: |
-      #     set -xe
-      #     RELEASE_NAME=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}
-      #     RELEASE_TAG=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}-${{ github.run_number }}
-      #     gh release delete $RELEASE_TAG --yes || true
-      #     gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
-      #     gh release upload $RELEASE_TAG mkosi.output/*.raw
+          # Create a release for the current tag, based in the value of OSTREE_VERSION in mkosi.basetree/usr/lib/os-release
+          OSTREE_VERSION=$(cat mkosi.basetree/usr/lib/os-release | grep ^VERSION_ID | cut -d= -f2)
+          RELEASE_NAME=sysext-kitchen-${{ matrix.image }}-${OSTREE_VERSION}
+          RELEASE_TAG=sysext-kitchen-${{ matrix.image }}-${OSTREE_VERSION}
+
+          gh release delete $RELEASE_TAG --yes || true
+          gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
+          (cd mkosi.output && gh release upload $RELEASE_TAG *.raw)
