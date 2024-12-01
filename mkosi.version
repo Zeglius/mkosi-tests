@@ -3,5 +3,5 @@
 
 set -e ${DEBUG:+-x}
 
-OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release && echo $OSTREE_VERSION)
+OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release && echo ${OSTREE_VERSION:-41})
 echo $OSTREE_VERSION
