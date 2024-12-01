@@ -44,7 +44,7 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          sudo mkosi --force build
+          sudo mkosi --debug --force build
 
       - name: Release
         env:
