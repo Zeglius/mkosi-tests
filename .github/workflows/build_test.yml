@@ -35,7 +35,7 @@ jobs:
       - uses: extractions/setup-just@v2
 
       - name: setup-mkosi
-        uses: systemd/mkosi@10fdbdf3d9db6c3d5e452f1f404d1c6438425c0b
+        uses: systemd/mkosi@38cbf1e4845ca3bbd4195867cf22032b1bbd32d5
 
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@v7
