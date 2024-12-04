@@ -73,7 +73,7 @@ jobs:
             # Push the OCI artifacts to ghcr.io
             for image in *.raw; do
               IMAGES_REFS+=(
-                $(oras push --format json ghcr.io/$GITHUB_REPOSITORY/${RELEASE_TAG}-$(basename $image .raw):latest $image | jq -r '.reference')
+                $(oras push --format json ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$(basename $image .raw):${RELEASE_TAG} $image | jq -r '.reference')
               )
             done
           )
