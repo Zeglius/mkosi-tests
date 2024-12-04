@@ -53,9 +53,9 @@ jobs:
           set -xe
 
           # Create a release for the current tag, based in the value of OSTREE_VERSION in mkosi.basetree/usr/lib/os-release
-          OSTREE_VERSION=$(cat mkosi.basetree/usr/lib/os-release | grep ^OSTREE_VERSION | cut -d= -f2)
+          OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release | echo ${OSTREE_VERSION})
           RELEASE_NAME=sysext-kitchen-${{ matrix.image }}-${OSTREE_VERSION}-${{ github.sha }}
-          RELEASE_TAG=$(echo "${{ matrix.image }}" | rev | cut -d'/' -f1 | rev | cut -d':' -f1)-${OSTREE_VERSION}
+          RELEASE_TAG=$(out="${{ matrix.image }}"; out=${out##*/}; out=${out%%:*})-${OSTREE_VERSION}
 
           gh release delete $RELEASE_TAG --yes || true
           gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
