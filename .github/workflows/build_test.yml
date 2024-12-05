@@ -83,5 +83,8 @@ jobs:
           gh release delete "$RELEASE_TAG" --yes || true
 
           # Create the release
-          gh release create "$RELEASE_TAG" --title "$RELEASE_NAME" \
-            --notes "System extensions for \`${{ matrix.image }}\`:\n$(printf -- '- %s\n' "${IMAGES_REFS[@]}")"
+          gh release create "$RELEASE_TAG" --title "$RELEASE_NAME" -F <(cat <<-RELEASEEOF
+          System extensions for \`${{ matrix.image }}\`:
+          $(printf -- '- %s\n' "${IMAGES_REFS[@]}")
+          RELEASEEOF
+          )
