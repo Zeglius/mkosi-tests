@@ -4,3 +4,4 @@
 **/mkosi.crt
 **/mkosi.basetree/**
 **/mkosi.local*
+**/.venv
