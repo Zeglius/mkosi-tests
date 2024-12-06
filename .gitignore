@@ -1,6 +1,6 @@
-/mkosi.cache/*
-/mkosi.output/*
-mkosi.key
-mkosi.crt
-mkosi.basetree/**
+**/mkosi.cache/*
+**/mkosi.output/*
+**/mkosi.key
+**/mkosi.crt
+**/mkosi.basetree/**
 **/mkosi.local*
