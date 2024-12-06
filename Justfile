@@ -2,39 +2,46 @@ MKOSI_COMMIT := "5182007dcefd76c11bb2c5cd28013369c97121d4"
 MKOSI_SOURCE := "git+https://github.com/systemd/mkosi.git@" + MKOSI_COMMIT
 export SUDOIF := if `id -u` == "0" { "" } else { "sudo" }
 export BASETREE := justfile_directory() + "/mkosi.basetree"
+INIT := "set ${DEBUG:+-x} -euo pipefail\n{ command -v mkosi >/dev/null || source .venv/bin/activate; }"
 
 [private]
 default:
     just --list
 
-setup:
+
+# List available recipes
+list:
     #!/usr/bin/bash
+    set ${DEBUG:+-x} -euo pipefail
 
-    function commandq () {
-        command -v $1 >/dev/null
-        return
-    }
+    for recipe in recipes/*; do
+        [[ -d $recipe ]] && echo "${recipe##*/}"
+    done
 
-    if ! commandq mkosi; then
-        if ! commandq uv; then
-            commandq brew || { exit 1; }
-            brew install uv
-        fi
-        uv tool install {{ MKOSI_SOURCE }}
+# Install required tooling
+setup $FORCE="":
+    #!/usr/bin/bash
+    {{ INIT }} || true
+
+    if [[ $FORCE == "force" || -z $(command -v mkosi) ]]; then
+        [[ $FORCE == "force" ]] && printf >&2 "Detected force flag: "
+        echo >&2 "Installing mkosi..."
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install "{{ MKOSI_SOURCE }}"
+        echo -e >&2 "\n\nExecute 'source .venv/bin/activate' to add mkosi to your PATH"
+    else
+        echo -e >&2 "mkosi already installed."
     fi
 
-clean:
+
+clean RECIPE="":
     #!/usr/bin/bash
+    {{ INIT }}
 
     mkosi clean
-    ${SUDOIF} rm -rf mkosi.{output,cache}/*
-    if [[ -d $BASETREE ]]; then
-        if [[ $(stat -f --format="%T" $BASETREE) == "btrfs" ]]; then
-            sudo btrfs subvolume delete $BASETREE
-        else
-            sudo rm -rf $BASETREE
-        fi
-    fi
+    rm -rf mkosi.{output,cache}/*
+    rm -rf $BASETREE
 
 prepare-overlay-tar $IMAGE_REF:
     #!/usr/bin/bash
