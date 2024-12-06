@@ -36,19 +36,6 @@ clean:
         fi
     fi
 
-build $IMAGE_REF:
-    #!/usr/bin/bash
-    {
-        set ${DEBUG:+-x} -euo pipefail
-        [[ -z $IMAGE_REF ]] && {
-        echo >&2 "IMAGE_REF and IMAGE_NAME must NOT be empty."
-        exit 1
-        }
-        just prepare-overlay-tar $IMAGE_REF >&2
-            ${CI:+sudo} $(which mkosi) $([[ -n $CI ]] && echo --debug)
-    } >&2
-    realpath ${IMAGE_NAME}_${format}.* >&1
-
 prepare-overlay-tar $IMAGE_REF:
     #!/usr/bin/bash
 
