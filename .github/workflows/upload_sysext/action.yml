@@ -21,6 +21,13 @@ runs:
     - name: setup-oras
       uses: oras-project/setup-oras@v1.2.1
 
+    - name: Setup fd
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fd-find
+        sudo ln -s $(which fdfind) ~/.local/bin/fd
+
     - name: Find input files
       shell: bash
       id: find-files
@@ -29,7 +36,7 @@ runs:
         paths_patterns='${{ inputs.raw-files }}'
         paths_resolved=""
         for path in $paths_patterns; do
-          paths_resolved="${path_resolved} $(sudo find . -maxdepth 1 -type f -name "$path" -exec realpath {} \;)"
+          paths_resolved="${path_resolved} $(fd --max-depth 2 -Itf -g -p -a "$path")"
         done
         paths_resolved=$(echo "$paths_resolved" | tr ' ' '\n' | sort -u)
         echo "paths='$paths_resolved'" >> $GITHUB_OUTPUT
