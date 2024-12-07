@@ -18,10 +18,10 @@ jobs:
       packages: write
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Setup mkosi workspace
         uses: ./.github/workflows/mkosi_setup
-
-      - uses: actions/checkout@v4
 
       - uses: extractions/setup-just@v2
 
@@ -32,46 +32,16 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          sudo mkosi --debug --force build
+          sudo mkosi \
+            --debug \
+            --force \
+            --dependency=dx-sysext,dx-confext \
+            build
 
-      - name: setup-oras
-        uses: oras-project/setup-oras@v1.2.1
-
-      - name: Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -xeo pipefail
-
-          # Create a release for the current tag, based in the value of OSTREE_VERSION in mkosi.basetree/usr/lib/os-release
-          OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release && echo ${OSTREE_VERSION})
-          RELEASE_NAME=sysext-kitchen-${{ matrix.image }}-${OSTREE_VERSION}-${{ github.sha }}
-          RELEASE_TAG=$(out="${{ matrix.image }}" && out=${out##*/} && out=${out%%:*} && echo "$out")-${OSTREE_VERSION}
-
-          # Here we store the references to the images we pushed to ghcr.io
-          IMAGES_REFS=()
-
-          (
-            # Push an OCI artifact to github packages
-            cd mkosi.output
-
-            # Login to ghcr.io
-            echo "${{secrets.GITHUB_TOKEN}}" | oras login ghcr.io -u $GITHUB_ACTOR --password-stdin
-
-            # Push the OCI artifacts to ghcr.io
-            for image in *.raw; do
-              IMAGES_REFS+=(
-                $(oras push --format json ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$(basename $image .raw):${RELEASE_TAG} $image | jq -r '.reference')
-              )
-            done
-          )
-
-          # Delete release if it exists
-          gh release delete "$RELEASE_TAG" --yes || true
-
-          # Create the release
-          gh release create "$RELEASE_TAG" --title "$RELEASE_NAME" -F <(cat <<-RELEASEEOF
-          System extensions for \`${{ matrix.image }}\`:
-          $(printf -- '- %s\n' "${IMAGES_REFS[@]}")
-          RELEASEEOF
-          )
+      - name: Upload sysext
+        uses: ./.github/workflows/upload_sysext/action.yml
+        with:
+          working-directory: mkosi.output
+          basetree: ${{ github.workspace }}/mkosi.basetree
+          raw-files: |
+            dx*.raw

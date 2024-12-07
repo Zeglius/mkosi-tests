@@ -1,0 +1,70 @@
+author: Zeglius
+name: "Process and Upload System Extensions"
+description: "Process raw system extension files and upload them to GitHub Container Registry"
+
+inputs:
+  raw-files:
+    description: "List of glob patterns for raw files"
+    required: true
+
+  working-directory:
+    description: "Working directory"
+    required: true
+
+  basetree:
+    description: "Absolute path to the mkosi.basetree directory"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: setup-oras
+      uses: oras-project/setup-oras@v1.2.1
+
+    - name: Process and upload extensions
+      shell: bash
+      env:
+        BASETREE: ${{ inputs.basetree }}
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # Source environment variables
+        ID=$(source ${BASETREE}/usr/lib/os-release; echo $ID)
+        VERSION_ID=$(source ${BASETREE}/usr/lib/os-release; echo $VERSION_ID)
+        OSTREE_VERSION=$(source ${BASETREE}/usr/lib/os-release; echo $OSTREE_VERSION)
+
+        # Process each raw file
+        for pattern in ${{ inputs.raw-files }}; do
+          for file in $pattern; do
+            # Check extension type
+            is_sysext=$(systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
+            is_confext=$(systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
+
+            # Get base name without extension
+            base_name=$(basename "$file" .raw)
+
+            # Determine extension type for name
+            if [[ "$base_name" != *"sysext"* ]] && [[ "$base_name" != *"confext"* ]]; then
+              if [[ "$is_sysext" == "true" ]]; then
+                base_name="${base_name}-sysext"
+              elif [[ "$is_confext" == "true" ]]; then
+                base_name="${base_name}-confext"
+              fi
+            fi
+
+            # Create tar archive
+            tar --zstd -cf "${base_name}.tar.zst" "$file"
+
+            # Extract NAME from base_name (everything before the last underscore)
+            NAME=$(echo "$base_name" | sed 's/\(.*\)_.*$/\1/')
+
+            # Create reference name for registry
+            REFERENCE_NAME="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${NAME}:${ID}-${OSTREE_VERSION}"
+
+            # Upload to registry
+            oras push "$REFERENCE_NAME" "${base_name}.tar.zst"
+
+            # Add additional tags
+            oras tag "$REFERENCE_NAME" "${ID}-${VERSION_ID}"
+            oras tag "$REFERENCE_NAME" "${ID}-${VERSION_ID}-latest"
+          done
+        done
