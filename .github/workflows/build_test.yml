@@ -38,10 +38,21 @@ jobs:
             --dependency=dx-sysext,dx-confext \
             build
 
+      - name: Find image files
+        id: find-files
+        run: |
+          files=$(
+            mkosi --json summary \
+            | jq -r '.Images[].OutputDirectory + "/" + .Images[].Output' \
+            | sort -u \
+            | xargs realpath -e 2>/dev/null \
+            | grep '.raw$'
+          )
+          echo "files='$files'" >> $GITHUB_OUTPUT
+
       - name: Upload sysext
         uses: ./.github/workflows/upload_sysext
         with:
-          working-directory: mkosi.output
+          working-directory: ${{ github.workspace }}/mkosi.output
           basetree: ${{ github.workspace }}/mkosi.basetree
-          raw-files: |
-            dx*.raw
+          raw-files: ${{ steps.find-files.outputs.files }}

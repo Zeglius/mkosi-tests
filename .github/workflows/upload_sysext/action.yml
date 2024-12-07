@@ -4,7 +4,7 @@ description: "Process raw system extension files and upload them to GitHub Conta
 
 inputs:
   raw-files:
-    description: "List of glob patterns for raw files"
+    description: "List of raw files"
     required: true
 
   working-directory:
@@ -27,19 +27,6 @@ runs:
         sudo apt-get update
         sudo apt-get install -y fd-find
         sudo ln -s $(which fdfind) ~/.local/bin/fd
-
-    - name: Find input files
-      shell: bash
-      id: find-files
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        paths_patterns='${{ inputs.raw-files }}'
-        paths_resolved=""
-        for path in $paths_patterns; do
-          paths_resolved="${path_resolved} $(fd --max-depth 2 -Itf -g -p -a "$path")"
-        done
-        paths_resolved=$(echo "$paths_resolved" | tr ' ' '\n' | sort -u)
-        echo "paths='$paths_resolved'" >> $GITHUB_OUTPUT
 
     - name: Process and upload extensions
       shell: bash
