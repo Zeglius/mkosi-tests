@@ -8,7 +8,7 @@ inputs:
     required: true
 
   working-directory:
-    description: "Working directory"
+    description: "Working directory, preferably the mkosi.output directory"
     required: true
 
   basetree:
@@ -22,15 +22,17 @@ runs:
       uses: oras-project/setup-oras@v1.2.1
 
     - name: Find input files
-      uses: tj-actions/glob@v22
-      id: glob
+      shell: bash
+      id: find-files
       working-directory: ${{ inputs.working-directory }}
-      with:
-        pattern: ${{ inputs.raw-files }}
-        match-directories: false
-        read-gitignore: false
-        follow-symbolic-links: true
-      continue-on-error: false
+      run: |
+        paths_patterns='${{ inputs.raw-files }}'
+        paths_resolved=""
+        for path in $paths_patterns; do
+          paths_resolved="${path_resolved} $(find . -type f -name "$path" -exec realpath {} \;)"
+        done
+        paths_resolved=$(echo "$paths_resolved" | tr ' ' '\n' | sort -u)
+        echo "paths='$paths_resolved'" >> $GITHUB_OUTPUT
 
     - name: Process and upload extensions
       shell: bash
@@ -44,7 +46,7 @@ runs:
         OSTREE_VERSION=$(source ${BASETREE}/usr/lib/os-release; echo $OSTREE_VERSION)
 
         # Process each raw file
-        for pattern in ${{ steps.glob.outputs.paths }}
+        for pattern in ${{ steps.find-files.outputs.paths }}
         do
           for file in $pattern; do
             # Check extension type
