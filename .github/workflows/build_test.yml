@@ -10,32 +10,20 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - ghcr.io/ublue-os/bazzite
-          - ghcr.io/ublue-os/bluefin
+          - ghcr.io/ublue-os/bazzite:41
+          - ghcr.io/ublue-os/bluefin:41
 
     permissions:
       contents: write
+      packages: write
 
     steps:
-      - name: Setup BTRFS partition
-        run: |
-          set -xe
-          BTRFS_FILE=/mybtrfs.img
-          # Dowload btrfs-progs
-          sudo apt-get install -y btrfs-progs
-          # Create partition
-          sudo truncate -s $(findmnt --target . --bytes  --df --json | jq -r '.filesystems[0].avail * 0.8 | round') "$BTRFS_FILE"
-          sudo mkfs.btrfs -r "$GITHUB_WORKSPACE" "$BTRFS_FILE"
-          pushd /
-          sudo systemd-mount "$BTRFS_FILE" "$GITHUB_WORKSPACE" --options=compress-force=zstd:1
-          popd
+      - name: Setup mkosi workspace
+        uses: ./.github/workflows/mkosi_setup
 
       - uses: actions/checkout@v4
 
       - uses: extractions/setup-just@v2
-
-      - name: setup-mkosi
-        uses: systemd/mkosi@10fdbdf3d9db6c3d5e452f1f404d1c6438425c0b
 
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@v7
@@ -44,24 +32,46 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          sudo mkosi --force build
+          sudo mkosi --debug --force build
 
-      # FIXME: This doesnt work, figure out why.
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.image }}-extensions
-          path: |
-            mkosi.output/*.raw
-          retention-days: 1
+      - name: setup-oras
+        uses: oras-project/setup-oras@v1.2.1
 
-      # - name: Release
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #   run: |
-      #     set -xe
-      #     RELEASE_NAME=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}
-      #     RELEASE_TAG=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}-${{ github.run_number }}
-      #     gh release delete $RELEASE_TAG --yes || true
-      #     gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
-      #     gh release upload $RELEASE_TAG mkosi.output/*.raw
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -xeo pipefail
+
+          # Create a release for the current tag, based in the value of OSTREE_VERSION in mkosi.basetree/usr/lib/os-release
+          OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release && echo ${OSTREE_VERSION})
+          RELEASE_NAME=sysext-kitchen-${{ matrix.image }}-${OSTREE_VERSION}-${{ github.sha }}
+          RELEASE_TAG=$(out="${{ matrix.image }}" && out=${out##*/} && out=${out%%:*} && echo "$out")-${OSTREE_VERSION}
+
+          # Here we store the references to the images we pushed to ghcr.io
+          IMAGES_REFS=()
+
+          (
+            # Push an OCI artifact to github packages
+            cd mkosi.output
+
+            # Login to ghcr.io
+            echo "${{secrets.GITHUB_TOKEN}}" | oras login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+            # Push the OCI artifacts to ghcr.io
+            for image in *.raw; do
+              IMAGES_REFS+=(
+                $(oras push --format json ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$(basename $image .raw):${RELEASE_TAG} $image | jq -r '.reference')
+              )
+            done
+          )
+
+          # Delete release if it exists
+          gh release delete "$RELEASE_TAG" --yes || true
+
+          # Create the release
+          gh release create "$RELEASE_TAG" --title "$RELEASE_NAME" -F <(cat <<-RELEASEEOF
+          System extensions for \`${{ matrix.image }}\`:
+          $(printf -- '- %s\n' "${IMAGES_REFS[@]}")
+          RELEASEEOF
+          )
