@@ -39,7 +39,7 @@ jobs:
             build
 
       - name: Upload sysext
-        uses: ./.github/workflows/upload_sysext/action.yml
+        uses: ./.github/workflows/upload_sysext
         with:
           working-directory: mkosi.output
           basetree: ${{ github.workspace }}/mkosi.basetree
