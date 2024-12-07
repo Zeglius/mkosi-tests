@@ -21,6 +21,17 @@ runs:
     - name: setup-oras
       uses: oras-project/setup-oras@v1.2.1
 
+    - name: Find input files
+      uses: tj-actions/glob@v22
+      id: glob
+      working-directory: ${{ inputs.working-directory }}
+      with:
+        pattern: ${{ inputs.raw-files }}
+        match-directories: false
+        read-gitignore: false
+        follow-symbolic-links: true
+      continue-on-error: false
+
     - name: Process and upload extensions
       shell: bash
       env:
@@ -33,7 +44,8 @@ runs:
         OSTREE_VERSION=$(source ${BASETREE}/usr/lib/os-release; echo $OSTREE_VERSION)
 
         # Process each raw file
-        for pattern in ${{ inputs.raw-files }}; do
+        for pattern in ${{ steps.glob.outputs.paths }}
+        do
           for file in $pattern; do
             # Check extension type
             is_sysext=$(systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
