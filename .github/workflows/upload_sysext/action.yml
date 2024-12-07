@@ -29,7 +29,7 @@ runs:
         paths_patterns='${{ inputs.raw-files }}'
         paths_resolved=""
         for path in $paths_patterns; do
-          paths_resolved="${path_resolved} $(find . -type f -name "$path" -exec realpath {} \;)"
+          paths_resolved="${path_resolved} $(sudo find . -maxdepth 1 -type f -name "$path" -exec realpath {} \;)"
         done
         paths_resolved=$(echo "$paths_resolved" | tr ' ' '\n' | sort -u)
         echo "paths='$paths_resolved'" >> $GITHUB_OUTPUT
