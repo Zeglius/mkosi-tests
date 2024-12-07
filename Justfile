@@ -57,7 +57,6 @@ prepare-overlay-tar $IMAGE_REF:
         fi
     }
 
-    just clean >&2
     echo >&2 "Preparing '$(basename "$BASETREE")'..."
 
     container=$(podman create --entrypoint /usr/bin/true $IMAGE_REF)
