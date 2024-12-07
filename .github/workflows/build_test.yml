@@ -41,14 +41,14 @@ jobs:
       - name: Find image files
         id: find-files
         run: |
-          files=$(
-            mkosi --json summary \
+          raw_files=$(mkosi --json summary \
             | jq -r '.Images[].OutputDirectory + "/" + .Images[].Output' \
             | sort -u \
             | xargs realpath -e 2>/dev/null \
-            | grep '.raw$'
-          )
-          echo "files='$files'" >> $GITHUB_OUTPUT
+            | grep '.raw$' \
+            | tr '\n' ' ' \
+            | sed 's/ $//')
+          echo "files=$raw_files" >> "$GITHUB_OUTPUT"
 
       - name: Upload sysext
         uses: ./.github/workflows/upload_sysext
