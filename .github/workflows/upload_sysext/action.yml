@@ -52,6 +52,9 @@ runs:
         echo "::endgroup::"
 
         echo "::group::For each file passed as input, process it and upload to registry"
+        function systemd-dissect() {
+          sudo systemd-dissect "$@"
+        }
         for pattern in $INPUT_FILES
         do
           for file in $pattern; do
