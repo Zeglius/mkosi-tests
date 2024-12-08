@@ -52,15 +52,12 @@ runs:
         echo "::endgroup::"
 
         echo "::group::For each file passed as input, process it and upload to registry"
-        function systemd-dissect() {
-          sudo systemd-dissect "$@"
-        }
         for pattern in $INPUT_FILES
         do
           for file in $pattern; do
             # Check extension type
-            is_sysext=$(systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
-            is_confext=$(systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
+            is_sysext=$(sudo systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
+            is_confext=$(sudo systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
 
             # Get base name without extension
             base_name=$(basename "$file" .raw)
