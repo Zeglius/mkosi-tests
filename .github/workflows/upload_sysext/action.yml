@@ -28,6 +28,8 @@ runs:
         sudo apt-get update
         sudo apt-get install -y fd-find erofs-utils erofsfuse
         sudo ln -s $(which fdfind) ~/.local/bin/fd
+        # Load EROFS module
+        sudo modprobe erofs
 
     - name: Process and upload extensions
       shell: bash
