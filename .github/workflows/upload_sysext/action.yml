@@ -34,13 +34,18 @@ runs:
         BASETREE: ${{ inputs.basetree }}
       working-directory: ${{ inputs.working-directory }}
       run: |
+        set -xeuo pipefail
+
+        echo "::group::Setup env vars"
         # Source environment variables
         ID=$(source ${BASETREE}/usr/lib/os-release; echo $ID)
         VERSION_ID=$(source ${BASETREE}/usr/lib/os-release; echo $VERSION_ID)
         OSTREE_VERSION=$(source ${BASETREE}/usr/lib/os-release; echo $OSTREE_VERSION)
+        echo "::endgroup::"
 
         # Process each raw file
         for pattern in ${{ steps.find-files.outputs.paths }}
+        echo "::group::For each file passed as input, process it and upload to registry"
         do
           for file in $pattern; do
             # Check extension type
@@ -76,3 +81,4 @@ runs:
             oras tag "$REFERENCE_NAME" "${ID}-${VERSION_ID}-latest"
           done
         done
+        echo "::endgroup::"
