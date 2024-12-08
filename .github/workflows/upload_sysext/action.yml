@@ -55,6 +55,12 @@ runs:
         for pattern in $INPUT_FILES
         do
           for file in $pattern; do
+            # Check the fike exists
+            if [[ ! -f $file ]]; then
+              echo "File $file does not exist"
+              exit 1
+            fi
+
             # Check extension type
             is_sysext=$(sudo systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
             is_confext=$(sudo systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
