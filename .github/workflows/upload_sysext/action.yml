@@ -6,11 +6,9 @@ inputs:
   raw-files:
     description: "List of raw files"
     required: true
-
   working-directory:
     description: "Working directory, preferably the mkosi.output directory"
     required: true
-
   basetree:
     description: "Absolute path to the mkosi.basetree directory"
     required: true
@@ -20,16 +18,6 @@ runs:
   steps:
     - name: setup-oras
       uses: oras-project/setup-oras@v1.2.1
-
-    - name: Install dependencies
-      shell: bash
-      run: |
-        set -euo pipefail
-        sudo apt-get update
-        sudo apt-get install -y fd-find erofs-utils erofsfuse
-        sudo ln -s $(which fdfind) ~/.local/bin/fd
-        # Load EROFS module
-        sudo modprobe erofs
 
     - name: Process and upload extensions
       shell: bash
@@ -54,31 +42,34 @@ runs:
         fi
         echo "::endgroup::"
 
+        echo "::group::Get mkosi summary"
+        MKOSI_SUMMARY="$(mkosi --json summary)"
+        echo "::endgroup::"
+
         echo "::group::For each file passed as input, process it and upload to registry"
-        for pattern in $INPUT_FILES
-        do
+        for pattern in $INPUT_FILES; do
           for file in $pattern; do
-            # Check the fike exists
+            # Check if the file exists
             if [[ ! -f $file ]]; then
               echo "File $file does not exist"
               exit 1
             fi
 
-            # Check extension type
-            is_sysext=$(sudo SYSTEMD_LOG_LEVEL=debug systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
-            is_confext=$(sudo SYSTEMD_LOG_LEVEL=debug systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
-
             # Get base name without extension
             base_name=$(basename "$file" .raw)
 
-            # Determine extension type for name
-            if [[ "$base_name" != *"sysext"* ]] && [[ "$base_name" != *"confext"* ]]; then
-              if [[ "$is_sysext" == "true" ]]; then
-                base_name="${base_name}-sysext"
-              elif [[ "$is_confext" == "true" ]]; then
-                base_name="${base_name}-confext"
-              fi
-            fi
+            # Check if it's a sysext or confext based on the Format field
+            format=$(echo "$MKOSI_SUMMARY" | jq -r --arg name "$base_name" '.Images[] | select(.Output == $name) | .Format')
+
+            case "$format" in
+              "sysext" | "confext")
+                echo "Format detected: $file $format"
+                ;;
+              *)
+                echo "Unknown format: $format"
+                exit 1
+                ;;
+            esac
 
             # Create tar archive
             tar --zstd -cf "${base_name}.tar.zst" "$file"
