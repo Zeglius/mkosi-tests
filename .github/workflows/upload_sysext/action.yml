@@ -21,11 +21,12 @@ runs:
     - name: setup-oras
       uses: oras-project/setup-oras@v1.2.1
 
-    - name: Setup fd
+    - name: Install dependencies
       shell: bash
       run: |
+        set -euo pipefail
         sudo apt-get update
-        sudo apt-get install -y fd-find
+        sudo apt-get install -y fd-find erofs-utils erofsfuse
         sudo ln -s $(which fdfind) ~/.local/bin/fd
 
     - name: Process and upload extensions
