@@ -62,8 +62,8 @@ runs:
             fi
 
             # Check extension type
-            is_sysext=$(sudo systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
-            is_confext=$(sudo systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
+            is_sysext=$(sudo SYSTEMD_LOG_LEVEL=debug systemd-dissect --json=short "$file" | jq -r '.useSystemExtension == true')
+            is_confext=$(sudo SYSTEMD_LOG_LEVEL=debug systemd-dissect --json=short "$file" | jq -r '.useConfigurationExtension == true')
 
             # Get base name without extension
             base_name=$(basename "$file" .raw)
