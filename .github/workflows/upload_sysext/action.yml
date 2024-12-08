@@ -32,6 +32,7 @@ runs:
       shell: bash
       env:
         BASETREE: ${{ inputs.basetree }}
+        INPUT_FILES: ${{ inputs.raw-files }}
       working-directory: ${{ inputs.working-directory }}
       run: |
         set -xeuo pipefail
@@ -43,9 +44,15 @@ runs:
         OSTREE_VERSION=$(source ${BASETREE}/usr/lib/os-release; echo $OSTREE_VERSION)
         echo "::endgroup::"
 
-        # Process each raw file
-        for pattern in ${{ steps.find-files.outputs.paths }}
+        echo "::group::Check we have files passed as input"
+        if [[ -z $INPUT_FILES ]]; then
+          echo "No files passed as input"
+          exit 1
+        fi
+        echo "::endgroup::"
+
         echo "::group::For each file passed as input, process it and upload to registry"
+        for pattern in $INPUT_FILES
         do
           for file in $pattern; do
             # Check extension type
