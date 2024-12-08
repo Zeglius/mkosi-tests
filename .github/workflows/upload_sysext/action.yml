@@ -84,8 +84,7 @@ runs:
             sudo chown 1001:1001 "$file"
 
             # Create tar archive
-            compressed_file="${base_name}.raw.tar.zst"
-            tar --zstd -cf $compressed_file "$file"
+            tar --zstd -cf "${base_name}.tar.zst" "$file"
 
             # Extract NAME from base_name (everything before the last underscore)
             NAME=$(echo "$base_name" | sed 's/\(.*\)_.*$/\1/')
@@ -94,7 +93,7 @@ runs:
             REFERENCE_NAME="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${NAME}:${ID}-${OSTREE_VERSION}"
 
             # Upload to registry
-            (cd $(dirname $compressed_file) && oras push "$REFERENCE_NAME" $(realpath --relative-to $PWD $compressed_file))
+            oras push "$REFERENCE_NAME" "${base_name}.tar.zst"
 
             # Add additional tags
             oras tag "$REFERENCE_NAME" "${ID}-${VERSION_ID}"
