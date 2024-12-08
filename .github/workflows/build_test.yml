@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - ghcr.io/ublue-os/bazzite:41
+          # - ghcr.io/ublue-os/bazzite:41
           - ghcr.io/ublue-os/bluefin:41
 
     permissions:
