@@ -56,3 +56,4 @@ jobs:
           working-directory: ${{ github.workspace }}/mkosi.output
           basetree: ${{ github.workspace }}/mkosi.basetree
           raw-files: ${{ steps.find-files.outputs.files }}
+          gh-token: ${{ secrets.GITHUB_TOKEN }}

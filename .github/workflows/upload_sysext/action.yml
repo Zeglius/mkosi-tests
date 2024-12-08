@@ -12,12 +12,20 @@ inputs:
   basetree:
     description: "Absolute path to the mkosi.basetree directory"
     required: true
+  gh-token:
+    description: "Github Token with `packages:write` permission"
+    required: true
 
 runs:
   using: "composite"
   steps:
     - name: setup-oras
       uses: oras-project/setup-oras@v1.2.1
+
+    - name: Login ORAS
+      shell: bash
+      run: |
+        echo "${{ inputs.gh-token }}" | oras login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
 
     - name: Process and upload extensions
       shell: bash
