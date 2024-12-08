@@ -43,7 +43,8 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Get mkosi summary"
-        MKOSI_SUMMARY="$(mkosi --json summary)"
+        # TODO 08/dec/2024: Feed mkosi summary as action input
+        MKOSI_SUMMARY="$(cd $GITHUB_WORKSPACE && mkosi --json summary)"
         echo "::endgroup::"
 
         echo "::group::For each file passed as input, process it and upload to registry"
