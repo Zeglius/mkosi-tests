@@ -32,11 +32,11 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          sudo mkosi \
-            --debug \
-            --force \
-            --dependency=dx-sysext,dx-confext \
-            build
+          _MKOSI_COMMAND='mkosi --dependency=dx-sysext,dx-confext'
+          _OUTPUT_DIRS="$($_MKOSI_COMMAND --json summary | jq -r '[.Images[].OutputDirectory] | unique | .[]')"
+
+          mkdir -p $_OUTPUT_DIRS
+          sudo $_MKOSI_COMMAND build
 
       - name: Find image files
         id: find-files
