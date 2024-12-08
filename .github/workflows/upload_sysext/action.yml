@@ -84,7 +84,7 @@ runs:
             sudo chown 1001:1001 "$file"
 
             # Create tar archive
-            tar --zstd -cf "${base_name}.tar.zst" "$file"
+            tar --zstd -cf "${base_name}.tar.zst" "$(realpath --relative-to $PWD $file)"
 
             # Extract NAME from base_name (everything before the last underscore)
             NAME=$(echo "$base_name" | sed 's/\(.*\)_.*$/\1/')
