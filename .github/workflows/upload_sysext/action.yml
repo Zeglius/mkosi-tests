@@ -73,7 +73,7 @@ runs:
             esac
 
             # Change ownership to our runner user:group
-            sudo chown $(id -u):$(id -g) "$file"
+            sudo chown 1001:1001 "$file"
 
             # Create tar archive
             tar --zstd -cf "${base_name}.tar.zst" "$file"
