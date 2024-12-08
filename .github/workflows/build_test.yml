@@ -32,7 +32,7 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          _MKOSI_COMMAND='mkosi --dependency=dx-sysext,dx-confext'
+          _MKOSI_COMMAND='mkosi --dependency=dx-sysext,dx-confext --force'
           _OUTPUT_DIRS="$($_MKOSI_COMMAND --json summary | jq -r '[.Images[].OutputDirectory] | unique | .[]')"
 
           mkdir -p $_OUTPUT_DIRS
