@@ -15,6 +15,9 @@ inputs:
   gh-token:
     description: "Github Token with `packages:write` permission"
     required: true
+  mkosi-summary:
+    description: "JSON output from mkosi --json summary"
+    required: true
 
 runs:
   using: "composite"
@@ -32,6 +35,7 @@ runs:
       env:
         BASETREE: ${{ inputs.basetree }}
         INPUT_FILES: ${{ inputs.raw-files }}
+        MKOSI_SUMMARY: ${{ inputs.mkosi-summary }}
       working-directory: ${{ inputs.working-directory }}
       run: |
         set -xeuo pipefail
@@ -48,11 +52,6 @@ runs:
           echo "No files passed as input"
           exit 1
         fi
-        echo "::endgroup::"
-
-        echo "::group::Get mkosi summary"
-        # TODO 08/dec/2024: Feed mkosi summary as action input
-        MKOSI_SUMMARY="$(cd $GITHUB_WORKSPACE && mkosi --json summary)"
         echo "::endgroup::"
 
         echo "::group::For each file passed as input, process it and upload to registry"

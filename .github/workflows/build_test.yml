@@ -38,6 +38,12 @@ jobs:
           mkdir -p $_OUTPUT_DIRS
           sudo $_MKOSI_COMMAND build
 
+      - name: Get mkosi summary
+        id: mkosi-summary
+        run: |
+          summary=$(mkosi --json summary)
+          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+
       - name: Find image files
         id: find-files
         run: |
@@ -56,4 +62,5 @@ jobs:
           working-directory: ${{ github.workspace }}/mkosi.output
           basetree: ${{ github.workspace }}/mkosi.basetree
           raw-files: ${{ steps.find-files.outputs.files }}
+          mkosi-summary: ${{ steps.mkosi-summary.outputs.summary }}
           gh-token: ${{ secrets.GITHUB_TOKEN }}
