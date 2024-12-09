@@ -1,0 +1,102 @@
+author: Zeglius
+name: "Process and Upload System Extensions"
+description: "Process raw system extension files and upload them to GitHub Container Registry"
+
+inputs:
+  raw-files:
+    description: "List of raw files"
+    required: true
+  working-directory:
+    description: "Working directory, preferably the mkosi.output directory"
+    required: true
+  basetree:
+    description: "Absolute path to the mkosi.basetree directory"
+    required: true
+  gh-token:
+    description: "Github Token with `packages:write` permission"
+    required: true
+  mkosi-summary:
+    description: "JSON output from mkosi --json summary"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: setup-oras
+      uses: oras-project/setup-oras@v1.2.1
+
+    - name: Login ORAS
+      shell: bash
+      run: |
+        echo "${{ inputs.gh-token }}" | oras login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+
+    - name: Process and upload extensions
+      shell: bash
+      env:
+        BASETREE: ${{ inputs.basetree }}
+        INPUT_FILES: ${{ inputs.raw-files }}
+        MKOSI_SUMMARY: ${{ inputs.mkosi-summary }}
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -xeuo pipefail
+
+        echo "::group::Setup env vars"
+        # Source environment variables
+        ID=$(source ${BASETREE}/usr/lib/os-release; echo $ID)
+        VERSION_ID=$(source ${BASETREE}/usr/lib/os-release; echo $VERSION_ID)
+        OSTREE_VERSION=$(source ${BASETREE}/usr/lib/os-release; echo $OSTREE_VERSION)
+        echo "::endgroup::"
+
+        echo "::group::Check we have files passed as input"
+        if [[ -z $INPUT_FILES ]]; then
+          echo "No files passed as input"
+          exit 1
+        fi
+        echo "::endgroup::"
+
+        echo "::group::For each file passed as input, process it and upload to registry"
+        for pattern in $INPUT_FILES; do
+          for file in $pattern; do
+            # Check if the file exists
+            if [[ ! -f $file ]]; then
+              echo "File $file does not exist"
+              exit 1
+            fi
+
+            # Get base name without extension
+            base_name=$(basename "$file" .raw)
+
+            # Check if it's a sysext or confext based on the Format field
+            format=$(echo "$MKOSI_SUMMARY" | jq -r --arg name "$base_name" '.Images[] | select(.Output == $name) | .Format')
+
+            case "$format" in
+              "sysext" | "confext")
+                echo "Format detected: $file $format"
+                ;;
+              *)
+                echo "Unknown format: $format"
+                exit 1
+                ;;
+            esac
+
+            # Change ownership to our runner user:group
+            sudo chown 1001:1001 "$file"
+
+            # Create tar archive
+            tar --zstd -cf "${base_name}.tar.zst" "$(realpath --relative-to $PWD $file)"
+
+            # Extract NAME from base_name (everything before the last underscore)
+            NAME=$(echo "$base_name" | sed 's/\(.*\)_.*$/\1/')
+
+            # Create reference name for registry
+            REFERENCE_NAME="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${NAME}:${ID}-${OSTREE_VERSION}"
+
+            # Upload to registry
+            oras push "$REFERENCE_NAME" "${base_name}.tar.zst"
+
+            # Add additional tags
+            oras tag "$REFERENCE_NAME" "${ID}-${VERSION_ID}"
+            oras tag "$REFERENCE_NAME" "${ID}-${VERSION_ID}-latest"
+          done
+        done
+        echo "::endgroup::"

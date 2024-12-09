@@ -10,32 +10,20 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - ghcr.io/ublue-os/bazzite
-          - ghcr.io/ublue-os/bluefin
+          # - ghcr.io/ublue-os/bazzite:41
+          - ghcr.io/ublue-os/bluefin:41
 
     permissions:
       contents: write
+      packages: write
 
     steps:
-      - name: Setup BTRFS partition
-        run: |
-          set -xe
-          BTRFS_FILE=/mybtrfs.img
-          # Dowload btrfs-progs
-          sudo apt-get install -y btrfs-progs
-          # Create partition
-          sudo truncate -s $(findmnt --target . --bytes  --df --json | jq -r '.filesystems[0].avail * 0.8 | round') "$BTRFS_FILE"
-          sudo mkfs.btrfs -r "$GITHUB_WORKSPACE" "$BTRFS_FILE"
-          pushd /
-          sudo systemd-mount "$BTRFS_FILE" "$GITHUB_WORKSPACE" --options=compress-force=zstd:1
-          popd
-
       - uses: actions/checkout@v4
 
-      - uses: extractions/setup-just@v2
+      - name: Setup mkosi workspace
+        uses: ./.github/workflows/mkosi_setup
 
-      - name: setup-mkosi
-        uses: systemd/mkosi@10fdbdf3d9db6c3d5e452f1f404d1c6438425c0b
+      - uses: extractions/setup-just@v2
 
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@v7
@@ -44,24 +32,35 @@ jobs:
         id: build
         run: |
           DEBUG=1 just prepare-overlay-tar ${{ matrix.image }}
-          sudo mkosi --force build
+          _MKOSI_COMMAND='mkosi --dependency=dx-sysext,dx-confext --force'
+          _OUTPUT_DIRS="$($_MKOSI_COMMAND --json summary | jq -r '[.Images[].OutputDirectory] | unique | .[]')"
 
-      # FIXME: This doesnt work, figure out why.
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+          mkdir -p $_OUTPUT_DIRS
+          sudo $_MKOSI_COMMAND build
+
+      - name: Get mkosi summary
+        id: mkosi-summary
+        run: |
+          summary=$(mkosi --json summary)
+          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+
+      - name: Find image files
+        id: find-files
+        run: |
+          raw_files=$(mkosi --json summary \
+            | jq -r '.Images[].OutputDirectory + "/" + .Images[].Output' \
+            | sort -u \
+            | xargs realpath -e 2>/dev/null \
+            | grep '.raw$' \
+            | tr '\n' ' ' \
+            | sed 's/ $//')
+          echo "files=$raw_files" >> "$GITHUB_OUTPUT"
+
+      - name: Upload sysext
+        uses: ./.github/workflows/upload_sysext
         with:
-          name: ${{ matrix.image }}-extensions
-          path: |
-            mkosi.output/*.raw
-          retention-days: 1
-
-      # - name: Release
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #   run: |
-      #     set -xe
-      #     RELEASE_NAME=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}
-      #     RELEASE_TAG=sysext-kitchen-${{ matrix.image }}_${{ steps.build.outputs.format }}-${{ github.run_number }}
-      #     gh release delete $RELEASE_TAG --yes || true
-      #     gh release create $RELEASE_TAG --title $RELEASE_NAME --notes 'System extensions for `${{ matrix.image }}`'
-      #     gh release upload $RELEASE_TAG mkosi.output/*.raw
+          working-directory: ${{ github.workspace }}/mkosi.output
+          basetree: ${{ github.workspace }}/mkosi.basetree
+          raw-files: ${{ steps.find-files.outputs.files }}
+          mkosi-summary: ${{ steps.mkosi-summary.outputs.summary }}
+          gh-token: ${{ secrets.GITHUB_TOKEN }}

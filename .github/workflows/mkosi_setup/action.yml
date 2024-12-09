@@ -1,0 +1,24 @@
+author: Zeglius
+description: Setup mkosi workspace, along with a btrfs partition
+name: setup-mkosi-workspace
+
+runs:
+  using: composite
+  steps:
+    - name: Setup BTRFS partition
+      id: btrfs-partition-setup
+      shell: bash
+      run: |
+        set -xe
+        BTRFS_FILE=/mybtrfs.img
+        # Dowload btrfs-progs
+        sudo apt-get install -y btrfs-progs
+        # Create partition
+        sudo truncate -s $(findmnt --target . --bytes  --df --json | jq -r '.filesystems[0].avail * 0.8 | round') "$BTRFS_FILE"
+        sudo mkfs.btrfs -r "$GITHUB_WORKSPACE" "$BTRFS_FILE"
+        pushd /
+        sudo systemd-mount "$BTRFS_FILE" "$GITHUB_WORKSPACE" --options=compress-force=zstd:1
+        popd
+
+    - name: setup-mkosi
+      uses: systemd/mkosi@38cbf1e4845ca3bbd4195867cf22032b1bbd32d5

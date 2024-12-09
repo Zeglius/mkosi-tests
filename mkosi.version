@@ -3,5 +3,10 @@
 
 set -e ${DEBUG:+-x}
 
-OSTREE_VERSION=$(source mkosi.basetree/usr/lib/os-release && echo $OSTREE_VERSION)
+MAYOR_VERSION_FALLBACK=41
+
+OSTREE_VERSION=$(
+    source mkosi.basetree/usr/lib/os-release || true
+    echo ${OSTREE_VERSION:-$MAYOR_VERSION_FALLBACK}
+)
 echo $OSTREE_VERSION
